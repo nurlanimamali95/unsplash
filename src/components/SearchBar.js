@@ -1,12 +1,18 @@
 import { useRef, useEffect, useState, useCallback } from "react";
-import { Container, Typography, TextField, Box, Button } from "@mui/material";
-import axios from "axios";
+import {
+  Container,
+  Typography,
+  TextField,
+  Box,
+  Button,
+  Dialog,
+  DialogContent,
+} from "@mui/material";
 import ImageList from "@mui/material/ImageList";
 import ImageListItem from "@mui/material/ImageListItem";
-
-const API_URL = "https://api.unsplash.com/search/photos";
-const apiKey = process.env.REACT_APP_UNSPLASH_API_KEY;
-const IMAGES_PER_PAGE = 20;
+import InputAdornment from "@mui/material/InputAdornment";
+import SearchIcon from "@mui/icons-material/Search";
+import { fetchImages } from "./api";
 
 const SearchBar = () => {
   const searchField = useRef(null);
@@ -14,33 +20,57 @@ const SearchBar = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [errorMessage, setErrorMessage] = useState("");
+  const [orderByPopularity, setOrderByPopularity] = useState(false);
+  const [openModal, setOpenModal] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
 
-  const fetchImages = useCallback(async () => {
+  const handleFetchImages = useCallback(async () => {
     try {
       if (searchField.current.value) {
         setErrorMessage("");
-        const { data } = await axios.get(
-          `${API_URL}?query=${searchField.current.value}&page=${page}&per_page=${IMAGES_PER_PAGE}&client_id=${apiKey}`
+        const { images, totalPages } = await fetchImages(
+          searchField.current.value,
+          page,
+          orderByPopularity ? "popular" : "latest"
         );
-        setImages(data.results);
-        setTotalPages(data.total_pages);
+        setImages(images);
+        setTotalPages(totalPages);
       }
     } catch (error) {
-      setErrorMessage(
-        "Unable to load images. Please try again at a later time."
-      );
-      console.log(error);
+      setErrorMessage(error.message);
     }
-  }, [page]);
+  }, [page, orderByPopularity]);
 
   useEffect(() => {
-    fetchImages();
-  }, [fetchImages]);
+    handleFetchImages();
+  }, [page, orderByPopularity, handleFetchImages]);
 
   const handleSearch = (event) => {
     event.preventDefault();
     setPage(1);
-    fetchImages();
+    handleFetchImages();
+  };
+
+  const handleCheckboxChange = (event) => {
+    setOrderByPopularity(event.target.checked);
+  };
+
+  const handleImageClick = (imageUrl) => {
+    setSelectedImage(imageUrl);
+    setOpenModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setOpenModal(false);
+    setSelectedImage(null);
+  };
+
+  const handleNextPage = () => {
+    setPage(page + 1);
+  };
+
+  const handlePreviousPage = () => {
+    setPage(page - 1);
   };
 
   return (
@@ -65,14 +95,44 @@ const SearchBar = () => {
           variant="outlined"
           inputRef={searchField}
           sx={{ width: "400px", my: 2 }}
+          InputProps={{
+            endAdornment: (
+              <InputAdornment position="end">
+                <Button
+                  variant="contained"
+                  onClick={handleSearch}
+                  startIcon={<SearchIcon />}
+                >
+                  Search
+                </Button>
+              </InputAdornment>
+            ),
+          }}
         />
       </Box>
-      <Box sx={{ width: "90%", height: 450, overflowY: "scroll" }}>
+      <Box sx={{ display: "flex", justifyContent: "center" }}>
+        {images.length > 0 && (
+          <Box sx={{ display: "flex", justifyContent: "center" }}>
+            <label>
+              <input
+                type="checkbox"
+                onChange={handleCheckboxChange}
+                checked={orderByPopularity}
+              />
+              Popular
+            </label>
+          </Box>
+        )}
+      </Box>
+      <Box sx={{ width: "90%" }}>
         <ImageList variant="masonry" cols={3} gap={8}>
           {images.map((image) => (
-            <ImageListItem>
+            <ImageListItem
+              key={image.id}
+              onClick={() => handleImageClick(image.urls.full)}
+            >
               <img
-                src={image.urls.thumb}
+                src={image.urls.small}
                 alt={image.alt_description}
                 loading="lazy"
               />
@@ -80,15 +140,22 @@ const SearchBar = () => {
           ))}
         </ImageList>
       </Box>
+
+      <Dialog open={openModal} onClose={handleCloseModal}>
+        <DialogContent>
+          {selectedImage && (
+            <img
+              src={selectedImage}
+              alt="Full Size"
+              style={{ width: "100%" }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
       <Box>
-        {page > 1 && (
-          <Button onClick={() => setPage(page - 1)}>Previous</Button>
-        )}
-      </Box>
-      <Box>
-        {page < totalPages && (
-          <Button onClick={() => setPage(page + 1)}>Next</Button>
-        )}
+        {page > 1 && <Button onClick={handlePreviousPage}>Previous</Button>}
+        {page < totalPages && <Button onClick={handleNextPage}>Next</Button>}
       </Box>
     </Container>
   );
