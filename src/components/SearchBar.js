@@ -1,34 +1,45 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import { Container, Typography, TextField, Box, Button } from "@mui/material";
 import axios from "axios";
+import ImageList from "@mui/material/ImageList";
+import ImageListItem from "@mui/material/ImageListItem";
 
 const API_URL = "https://api.unsplash.com/search/photos";
 const apiKey = process.env.REACT_APP_UNSPLASH_API_KEY;
 const IMAGES_PER_PAGE = 20;
 
 const SearchBar = () => {
-  console.log("api key", apiKey);
+  const searchField = useRef(null);
+  const [images, setImages] = useState([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const fetchImages = async () => {
+  const fetchImages = useCallback(async () => {
     try {
-      const result = await axios.get(
-        `${API_URL}?query=${searchField.current.value}&page=1&per_page=${IMAGES_PER_PAGE}&client_id=${apiKey}`
-      );
-      console.log("result", result.data);
+      if (searchField.current.value) {
+        setErrorMessage("");
+        const { data } = await axios.get(
+          `${API_URL}?query=${searchField.current.value}&page=${page}&per_page=${IMAGES_PER_PAGE}&client_id=${apiKey}`
+        );
+        setImages(data.results);
+        setTotalPages(data.total_pages);
+      }
     } catch (error) {
+      setErrorMessage(
+        "Unable to load images. Please try again at a later time."
+      );
       console.log(error);
     }
-  };
+  }, [page]);
+
+  useEffect(() => {
+    fetchImages();
+  }, [fetchImages]);
 
   const handleSearch = (event) => {
     event.preventDefault();
-    console.log(searchField.current.value);
-    fetchImages();
-  };
-  const searchField = useRef(null);
-
-  const handleSelection = (selection) => {
-    searchField.current.value = selection;
+    setPage(1);
     fetchImages();
   };
 
@@ -47,6 +58,7 @@ const SearchBar = () => {
         <Typography variant="h1" component="h1" sx={{ fontSize: "3em" }}>
           Explore Images
         </Typography>
+        {errorMessage && <Typography variant="p">{errorMessage}</Typography>}
         <TextField
           id="outlined-basic"
           label="Type something..."
@@ -54,29 +66,29 @@ const SearchBar = () => {
           inputRef={searchField}
           sx={{ width: "400px", my: 2 }}
         />
-        <Box display="flex" justifyContent="center">
-          <Button
-            variant="contained"
-            sx={{ mx: 1 }}
-            onClick={() => handleSelection("nature")}
-          >
-            nature
-          </Button>
-          <Button
-            variant="contained"
-            sx={{ mx: 1 }}
-            onClick={() => handleSelection("cats")}
-          >
-            cats
-          </Button>
-          <Button
-            variant="contained"
-            sx={{ mx: 1 }}
-            onClick={() => handleSelection("winter")}
-          >
-            winter
-          </Button>
-        </Box>
+      </Box>
+      <Box sx={{ width: "90%", height: 450, overflowY: "scroll" }}>
+        <ImageList variant="masonry" cols={3} gap={8}>
+          {images.map((image) => (
+            <ImageListItem>
+              <img
+                src={image.urls.thumb}
+                alt={image.alt_description}
+                loading="lazy"
+              />
+            </ImageListItem>
+          ))}
+        </ImageList>
+      </Box>
+      <Box>
+        {page > 1 && (
+          <Button onClick={() => setPage(page - 1)}>Previous</Button>
+        )}
+      </Box>
+      <Box>
+        {page < totalPages && (
+          <Button onClick={() => setPage(page + 1)}>Next</Button>
+        )}
       </Box>
     </Container>
   );
