@@ -7,6 +7,7 @@ import {
   Button,
   Dialog,
   DialogContent,
+  Chip,
 } from "@mui/material";
 import ImageList from "@mui/material/ImageList";
 import ImageListItem from "@mui/material/ImageListItem";
@@ -23,6 +24,32 @@ const SearchBar = () => {
   const [orderByPopularity, setOrderByPopularity] = useState(false);
   const [openModal, setOpenModal] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [randomTags, setRandomTags] = useState([]);
+
+  useEffect(() => {
+    const allTags = images.flatMap((image) =>
+      image.tags.map((tag) => tag.title)
+    );
+
+    const uniqueTags = Array.from(new Set(allTags));
+
+    const shuffledTags = shuffleArray(uniqueTags);
+
+    const selectedTags = shuffledTags.slice(
+      0,
+      Math.min(10, shuffledTags.length)
+    );
+
+    setRandomTags(selectedTags);
+  }, [images]);
+
+  const shuffleArray = (array) => {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+  };
 
   const handleFetchImages = useCallback(async () => {
     try {
@@ -71,6 +98,17 @@ const SearchBar = () => {
 
   const handlePreviousPage = () => {
     setPage(page - 1);
+  };
+
+  const handleTagClick = async (tag) => {
+    try {
+      const { images, totalPages } = await fetchImages(tag, 1, "latest");
+      setImages(images);
+      setTotalPages(totalPages);
+      searchField.current.value = tag;
+    } catch (error) {
+      setErrorMessage(error.message);
+    }
   };
 
   return (
@@ -124,6 +162,22 @@ const SearchBar = () => {
           </Box>
         )}
       </Box>
+      <Box mt={4}>
+        <Box display="flex" justifyContent="center" mt={2} flexWrap="wrap">
+          {randomTags
+            .filter((tag) => tag !== searchField.current.value)
+            .map((tag, index) => (
+              <Chip
+                key={index}
+                label={tag}
+                onClick={() => handleTagClick(tag)}
+                variant="outlined"
+                sx={{ margin: "0 5px 5px 0" }}
+                clickable
+              />
+            ))}
+        </Box>
+      </Box>
       <Box sx={{ width: "90%" }}>
         <ImageList variant="masonry" cols={3} gap={8}>
           {images.map((image) => (
@@ -140,7 +194,6 @@ const SearchBar = () => {
           ))}
         </ImageList>
       </Box>
-
       <Dialog open={openModal} onClose={handleCloseModal}>
         <DialogContent>
           {selectedImage && (
@@ -152,7 +205,6 @@ const SearchBar = () => {
           )}
         </DialogContent>
       </Dialog>
-
       <Box>
         {page > 1 && <Button onClick={handlePreviousPage}>Previous</Button>}
         {page < totalPages && <Button onClick={handleNextPage}>Next</Button>}
