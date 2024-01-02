@@ -7,13 +7,12 @@ import {
   Button,
   Dialog,
   DialogContent,
-  Chip,
 } from "@mui/material";
-import ImageList from "@mui/material/ImageList";
-import ImageListItem from "@mui/material/ImageListItem";
 import InputAdornment from "@mui/material/InputAdornment";
 import SearchIcon from "@mui/icons-material/Search";
 import { fetchImages } from "./api";
+import ImageGrid from "./ImageGrid";
+import Tags from "./Tags";
 
 const SearchBar = () => {
   const searchField = useRef(null);
@@ -100,6 +99,8 @@ const SearchBar = () => {
     setPage(page - 1);
   };
 
+  
+
   const handleTagClick = async (tag) => {
     try {
       const { images, totalPages } = await fetchImages(tag, 1, "latest");
@@ -163,36 +164,15 @@ const SearchBar = () => {
         )}
       </Box>
       <Box mt={4}>
-        <Box display="flex" justifyContent="center" mt={2} flexWrap="wrap">
-          {randomTags
-            .filter((tag) => tag !== searchField.current.value)
-            .map((tag, index) => (
-              <Chip
-                key={index}
-                label={tag}
-                onClick={() => handleTagClick(tag)}
-                variant="outlined"
-                sx={{ margin: "0 5px 5px 0" }}
-                clickable
-              />
-            ))}
-        </Box>
+        <Tags
+          tags={randomTags}
+          currentSearch={searchField.current ? searchField.current.value : ""}
+          handleTagClick={handleTagClick}
+          searchField={searchField}
+        />
       </Box>
       <Box sx={{ width: "90%" }}>
-        <ImageList variant="masonry" cols={3} gap={8}>
-          {images.map((image) => (
-            <ImageListItem
-              key={image.id}
-              onClick={() => handleImageClick(image.urls.full)}
-            >
-              <img
-                src={image.urls.small}
-                alt={image.alt_description}
-                loading="lazy"
-              />
-            </ImageListItem>
-          ))}
-        </ImageList>
+        <ImageGrid images={images} handleImageClick={handleImageClick} />
       </Box>
       <Dialog open={openModal} onClose={handleCloseModal}>
         <DialogContent>
