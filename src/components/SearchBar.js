@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState, useCallback } from "react";
-import { Container, Typography, Box, Button } from "@mui/material";
-import { fetchImages, handleFetchImages } from "../utils/api";
+import { Container, Typography, Box } from "@mui/material";
+import { fetchImages } from "../utils/api";
 import ImageGrid from "./ImageGrid";
 import Tags from "./Tags";
 import { getRandomTags } from "../utils/getRandomTags";
@@ -8,10 +8,7 @@ import Checkbox from "./Checkbox";
 import ImageModal from "./ImageModal";
 import SearchField from "./SearchField";
 import { handleImageClick, handleCloseModal } from "../handlers/imageHandlers";
-import {
-  handleNextPage,
-  handlePreviousPage,
-} from "../handlers/paginationHandlers";
+import InfiniteScroll from "react-infinite-scroll-component";
 
 const SearchBar = () => {
   const searchField = useRef(null);
@@ -29,20 +26,16 @@ const SearchBar = () => {
   }, [images]);
 
   const fetchImagesCallback = useCallback(async () => {
-    await handleFetchImages(
-      searchField.current.value,
-      page,
-      orderByPopularity,
-      searchField,
-      setImages,
-      setTotalPages,
-      setErrorMessage
-    );
-  }, [page, orderByPopularity, searchField]);
+    try {
+      const { images: newImages, totalPages: newTotalPages } =
+        await fetchImages(searchField.current.value, page, orderByPopularity);
 
-  useEffect(() => {
-    fetchImagesCallback();
-  }, [fetchImagesCallback]);
+      setImages((prevImages) => [...prevImages, ...newImages]);
+      setTotalPages(newTotalPages);
+    } catch (error) {
+      setErrorMessage(error.message);
+    }
+  }, [page, orderByPopularity]);
 
   const handleSearch = (event) => {
     event.preventDefault();
@@ -50,13 +43,16 @@ const SearchBar = () => {
     fetchImagesCallback();
   };
 
-  const onNextPage = () => {
-    handleNextPage(page, setPage);
-  };
+  useEffect(() => {
+    fetchImagesCallback();
+  }, [fetchImagesCallback]);
 
-  const onPreviousPage = () => {
-    handlePreviousPage(page, setPage);
+  const loadMoreImages = () => {
+    if (page < totalPages) {
+      setPage((prevPage) => prevPage + 1);
+    }
   };
+  
 
   const onImageClick = (imageUrl) => {
     handleImageClick(imageUrl, setSelectedImage, setOpenModal);
@@ -115,18 +111,25 @@ const SearchBar = () => {
           searchField={searchField}
         />
       </Box>
-      <Box sx={{ width: "90%" }}>
-        <ImageGrid images={images} handleImageClick={onImageClick} />
-      </Box>
+      <InfiniteScroll
+        dataLength={images.length}
+        next={loadMoreImages}
+        hasMore={page < totalPages}
+        loader={<h4>Loading...</h4>}
+      >
+        <Box sx={{ width: "90%" }}>
+          <ImageGrid
+            images={images}
+            handleImageClick={onImageClick}
+            keyExtractor={(image) => image.id}
+          />
+        </Box>
+      </InfiniteScroll>
       <ImageModal
         openModal={openModal}
         handleCloseModal={onCloseModal}
         selectedImage={selectedImage}
       />
-      <Box>
-        {page > 1 && <Button onClick={onPreviousPage}>Previous</Button>}
-        {page < totalPages && <Button onClick={onNextPage}>Next</Button>}
-      </Box>
     </Container>
   );
 };

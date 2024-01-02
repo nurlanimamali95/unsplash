@@ -24,29 +24,4 @@ const fetchImages = async (query, page, orderBy = "latest") => {
   }
 };
 
-const handleFetchImages = async (
-  query,
-  page,
-  orderByPopularity,
-  searchFieldRef,
-  setImages,
-  setTotalPages,
-  setErrorMessage
-) => {
-  try {
-    if (searchFieldRef.current.value) {
-      setErrorMessage("");
-      const { images, totalPages } = await fetchImages(
-        query,
-        page,
-        orderByPopularity ? "popular" : "latest"
-      );
-      setImages(images);
-      setTotalPages(totalPages);
-    }
-  } catch (error) {
-    setErrorMessage(error.message);
-  }
-};
-
-export { fetchImages, handleFetchImages };
+export { fetchImages };
