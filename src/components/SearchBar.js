@@ -1,18 +1,17 @@
 import { useRef, useEffect, useState, useCallback } from "react";
-import {
-  Container,
-  Typography,
-  TextField,
-  Box,
-  Button,
-  Dialog,
-  DialogContent,
-} from "@mui/material";
-import InputAdornment from "@mui/material/InputAdornment";
-import SearchIcon from "@mui/icons-material/Search";
-import { fetchImages } from "./api";
+import { Container, Typography, Box, Button } from "@mui/material";
+import { fetchImages, handleFetchImages } from "../utils/api";
 import ImageGrid from "./ImageGrid";
 import Tags from "./Tags";
+import { getRandomTags } from "../utils/getRandomTags";
+import Checkbox from "./Checkbox";
+import ImageModal from "./ImageModal";
+import SearchField from "./SearchField";
+import { handleImageClick, handleCloseModal } from "../handlers/imageHandlers";
+import {
+  handleNextPage,
+  handlePreviousPage,
+} from "../handlers/paginationHandlers";
 
 const SearchBar = () => {
   const searchField = useRef(null);
@@ -26,80 +25,46 @@ const SearchBar = () => {
   const [randomTags, setRandomTags] = useState([]);
 
   useEffect(() => {
-    const allTags = images.flatMap((image) =>
-      image.tags.map((tag) => tag.title)
-    );
-
-    const uniqueTags = Array.from(new Set(allTags));
-
-    const shuffledTags = shuffleArray(uniqueTags);
-
-    const selectedTags = shuffledTags.slice(
-      0,
-      Math.min(10, shuffledTags.length)
-    );
-
-    setRandomTags(selectedTags);
+    setRandomTags(getRandomTags(images));
   }, [images]);
 
-  const shuffleArray = (array) => {
-    for (let i = array.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [array[i], array[j]] = [array[j], array[i]];
-    }
-    return array;
-  };
-
-  const handleFetchImages = useCallback(async () => {
-    try {
-      if (searchField.current.value) {
-        setErrorMessage("");
-        const { images, totalPages } = await fetchImages(
-          searchField.current.value,
-          page,
-          orderByPopularity ? "popular" : "latest"
-        );
-        setImages(images);
-        setTotalPages(totalPages);
-      }
-    } catch (error) {
-      setErrorMessage(error.message);
-    }
-  }, [page, orderByPopularity]);
+  const fetchImagesCallback = useCallback(async () => {
+    await handleFetchImages(
+      searchField.current.value,
+      page,
+      orderByPopularity,
+      searchField,
+      setImages,
+      setTotalPages,
+      setErrorMessage
+    );
+  }, [page, orderByPopularity, searchField]);
 
   useEffect(() => {
-    handleFetchImages();
-  }, [page, orderByPopularity, handleFetchImages]);
+    fetchImagesCallback();
+  }, [fetchImagesCallback]);
 
   const handleSearch = (event) => {
     event.preventDefault();
     setPage(1);
-    handleFetchImages();
+    fetchImagesCallback();
   };
 
-  const handleCheckboxChange = (event) => {
-    setOrderByPopularity(event.target.checked);
+  const onNextPage = () => {
+    handleNextPage(page, setPage);
   };
 
-  const handleImageClick = (imageUrl) => {
-    setSelectedImage(imageUrl);
-    setOpenModal(true);
+  const onPreviousPage = () => {
+    handlePreviousPage(page, setPage);
   };
 
-  const handleCloseModal = () => {
-    setOpenModal(false);
-    setSelectedImage(null);
+  const onImageClick = (imageUrl) => {
+    handleImageClick(imageUrl, setSelectedImage, setOpenModal);
   };
 
-  const handleNextPage = () => {
-    setPage(page + 1);
+  const onCloseModal = () => {
+    handleCloseModal(setOpenModal, setSelectedImage);
   };
-
-  const handlePreviousPage = () => {
-    setPage(page - 1);
-  };
-
-  
 
   const handleTagClick = async (tag) => {
     try {
@@ -127,39 +92,18 @@ const SearchBar = () => {
         <Typography variant="h1" component="h1" sx={{ fontSize: "3em" }}>
           Explore Images
         </Typography>
-        {errorMessage && <Typography variant="p">{errorMessage}</Typography>}
-        <TextField
-          id="outlined-basic"
-          label="Type something..."
-          variant="outlined"
-          inputRef={searchField}
-          sx={{ width: "400px", my: 2 }}
-          InputProps={{
-            endAdornment: (
-              <InputAdornment position="end">
-                <Button
-                  variant="contained"
-                  onClick={handleSearch}
-                  startIcon={<SearchIcon />}
-                >
-                  Search
-                </Button>
-              </InputAdornment>
-            ),
-          }}
-        />
+        <Box>
+          {errorMessage && <Typography variant="p">{errorMessage}</Typography>}
+        </Box>
+        <SearchField searchField={searchField} handleSearch={handleSearch} />
       </Box>
       <Box sx={{ display: "flex", justifyContent: "center" }}>
         {images.length > 0 && (
           <Box sx={{ display: "flex", justifyContent: "center" }}>
-            <label>
-              <input
-                type="checkbox"
-                onChange={handleCheckboxChange}
-                checked={orderByPopularity}
-              />
-              Popular
-            </label>
+            <Checkbox
+              onChange={(checked) => setOrderByPopularity(checked)}
+              checked={orderByPopularity}
+            />
           </Box>
         )}
       </Box>
@@ -172,22 +116,16 @@ const SearchBar = () => {
         />
       </Box>
       <Box sx={{ width: "90%" }}>
-        <ImageGrid images={images} handleImageClick={handleImageClick} />
+        <ImageGrid images={images} handleImageClick={onImageClick} />
       </Box>
-      <Dialog open={openModal} onClose={handleCloseModal}>
-        <DialogContent>
-          {selectedImage && (
-            <img
-              src={selectedImage}
-              alt="Full Size"
-              style={{ width: "100%" }}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+      <ImageModal
+        openModal={openModal}
+        handleCloseModal={onCloseModal}
+        selectedImage={selectedImage}
+      />
       <Box>
-        {page > 1 && <Button onClick={handlePreviousPage}>Previous</Button>}
-        {page < totalPages && <Button onClick={handleNextPage}>Next</Button>}
+        {page > 1 && <Button onClick={onPreviousPage}>Previous</Button>}
+        {page < totalPages && <Button onClick={onNextPage}>Next</Button>}
       </Box>
     </Container>
   );
