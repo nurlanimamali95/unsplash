@@ -23,6 +23,7 @@ const SearchBar = () => {
   const [openModal, setOpenModal] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [randomTags, setRandomTags] = useState([]);
+  const [loadingImage, setLoadingImage] = useState(false);
 
   useEffect(() => {
     setRandomTags(getRandomTags(images));
@@ -39,6 +40,10 @@ const SearchBar = () => {
       setErrorMessage
     );
   }, [page, orderByPopularity, searchField]);
+
+  const handleImageLoad = () => {
+    setLoadingImage(false);
+  };
 
   useEffect(() => {
     fetchImagesCallback();
@@ -79,6 +84,7 @@ const SearchBar = () => {
 
   return (
     <Container
+      maxWidth="lg"
       component="form"
       onSubmit={handleSearch}
       sx={{
@@ -86,6 +92,7 @@ const SearchBar = () => {
         flexDirection: "column",
         alignItems: "center",
         height: "100vh",
+        width: "100vw",
       }}
     >
       <Box textAlign="center" my="auto">
@@ -122,6 +129,8 @@ const SearchBar = () => {
         openModal={openModal}
         handleCloseModal={onCloseModal}
         selectedImage={selectedImage}
+        handleImageLoad={handleImageLoad}
+        loading={loadingImage}
       />
       <Box>
         {page > 1 && <Button onClick={onPreviousPage}>Previous</Button>}
