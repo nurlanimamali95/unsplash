@@ -11,7 +11,7 @@ const Tags = ({ tags, currentSearch, handleTagClick }) => {
             key={index}
             label={tag}
             onClick={() => handleTagClick(tag)}
-            variant="outlined"
+            
             sx={{ margin: "0 5px 5px 0" }}
             clickable
           />
