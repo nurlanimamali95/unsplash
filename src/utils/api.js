@@ -4,7 +4,7 @@ import axios from "axios";
 
 const API_URL = "https://api.unsplash.com/search/photos";
 const apiKey = process.env.REACT_APP_UNSPLASH_API_KEY;
-const IMAGES_PER_PAGE = 10;
+const IMAGES_PER_PAGE = 9;
 
 const fetchImages = async (query, page, orderBy = "latest") => {
   try {
