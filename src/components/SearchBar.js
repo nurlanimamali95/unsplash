@@ -11,7 +11,7 @@ import InfiniteScroll from "react-infinite-scroll-component";
 import sortImagesByColor from "../utils/colorSort";
 
 const SearchBar = () => {
-  const searchField = useRef(null);
+  const searchFieldRef = useRef(null);
   const [images, setImages] = useState([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
@@ -20,14 +20,10 @@ const SearchBar = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [randomTags, setRandomTags] = useState([]);
 
-  useEffect(() => {
-    setRandomTags(getRandomTags(images));
-  }, [images]);
-
   const fetchImagesCallback = useCallback(async () => {
     try {
       const { images: newImages, totalPages: newTotalPages } =
-        await fetchImages(searchField.current.value, page);
+        await fetchImages(searchFieldRef.current.value, page);
       if (page === 1) {
         setImages(newImages);
       } else {
@@ -42,7 +38,7 @@ const SearchBar = () => {
   const handleSearch = (event) => {
     event.preventDefault();
     setPage(1);
-    const searchTerm = searchField.current.value;
+    const searchTerm = searchFieldRef.current.value;
     if (searchTerm.trim() === "") {
       setImages([]);
     } else {
@@ -50,22 +46,10 @@ const SearchBar = () => {
     }
   };
 
-  useEffect(() => {
-    fetchImagesCallback();
-  }, [fetchImagesCallback]);
-
   const loadMoreImages = () => {
     if (page < totalPages) {
       setPage((prevPage) => prevPage + 1);
     }
-  };
-
-  const onImageClick = (imageUrl) => {
-    handleImageClick(imageUrl, setSelectedImage, setOpenModal);
-  };
-
-  const onCloseModal = () => {
-    handleCloseModal(setOpenModal, setSelectedImage);
   };
 
   const handleSortByColor = () => {
@@ -78,12 +62,27 @@ const SearchBar = () => {
       const { images, totalPages } = await fetchImages(tag, 1, "latest");
       setImages(images);
       setTotalPages(totalPages);
-      searchField.current.value = tag;
+      searchFieldRef.current.value = tag;
     } catch (error) {
       setErrorMessage(error.message);
     }
   };
 
+  useEffect(() => {
+    fetchImagesCallback();
+  }, [fetchImagesCallback]);
+
+  useEffect(() => {
+    setRandomTags(getRandomTags(images));
+  }, [images]);
+
+  const onImageClick = (imageUrl) => {
+    handleImageClick(imageUrl, setSelectedImage, setOpenModal);
+  };
+
+  const onCloseModal = () => {
+    handleCloseModal(setOpenModal, setSelectedImage);
+  };
   return (
     <Container
       component="form"
@@ -106,7 +105,7 @@ const SearchBar = () => {
         <Box>
           {errorMessage && <Typography variant="p">{errorMessage}</Typography>}
         </Box>
-        <SearchField searchField={searchField} handleSearch={handleSearch} />
+        <SearchField searchField={searchFieldRef} handleSearch={handleSearch} />
       </Box>
       {images.length > 0 && (
         <Box>
@@ -116,9 +115,9 @@ const SearchBar = () => {
       <Box mt={4}>
         <Tags
           tags={randomTags}
-          currentSearch={searchField.current ? searchField.current.value : ""}
+          currentSearch={searchFieldRef.current ? searchFieldRef.current.value : ""}
           handleTagClick={handleTagClick}
-          searchField={searchField}
+          searchField={searchFieldRef}
         />
       </Box>
       {images.length > 0 && (
