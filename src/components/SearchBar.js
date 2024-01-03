@@ -1,17 +1,14 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import { Container, Typography, Box, Button } from "@mui/material";
-import { fetchImages, handleFetchImages } from "../utils/api";
+import { fetchImages } from "../utils/api";
 import ImageGrid from "./ImageGrid";
 import Tags from "./Tags";
 import { getRandomTags } from "../utils/getRandomTags";
-import Checkbox from "./Checkbox";
 import ImageModal from "./ImageModal";
 import SearchField from "./SearchField";
 import { handleImageClick, handleCloseModal } from "../handlers/imageHandlers";
-import {
-  handleNextPage,
-  handlePreviousPage,
-} from "../handlers/paginationHandlers";
+import InfiniteScroll from "react-infinite-scroll-component";
+import sortImagesByColor from "../utils/colorSort";
 
 const SearchBar = () => {
   const searchField = useRef(null);
@@ -19,48 +16,48 @@ const SearchBar = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [errorMessage, setErrorMessage] = useState("");
-  const [orderByPopularity, setOrderByPopularity] = useState(false);
   const [openModal, setOpenModal] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [randomTags, setRandomTags] = useState([]);
-  const [loadingImage, setLoadingImage] = useState(false);
 
   useEffect(() => {
     setRandomTags(getRandomTags(images));
   }, [images]);
 
   const fetchImagesCallback = useCallback(async () => {
-    await handleFetchImages(
-      searchField.current.value,
-      page,
-      orderByPopularity,
-      searchField,
-      setImages,
-      setTotalPages,
-      setErrorMessage
-    );
-  }, [page, orderByPopularity, searchField]);
+    try {
+      const { images: newImages, totalPages: newTotalPages } =
+        await fetchImages(searchField.current.value, page);
+      if (page === 1) {
+        setImages(newImages);
+      } else {
+        setImages((prevImages) => [...prevImages, ...newImages]);
+      }
+      setTotalPages(newTotalPages);
+    } catch (error) {
+      setErrorMessage(error.message);
+    }
+  }, [page]);
 
-  const handleImageLoad = () => {
-    setLoadingImage(false);
+  const handleSearch = (event) => {
+    event.preventDefault();
+    setPage(1);
+    const searchTerm = searchField.current.value;
+    if (searchTerm.trim() === "") {
+      setImages([]);
+    } else {
+      fetchImagesCallback();
+    }
   };
 
   useEffect(() => {
     fetchImagesCallback();
   }, [fetchImagesCallback]);
 
-  const handleSearch = (event) => {
-    event.preventDefault();
-    setPage(1);
-    fetchImagesCallback();
-  };
-
-  const onNextPage = () => {
-    handleNextPage(page, setPage);
-  };
-
-  const onPreviousPage = () => {
-    handlePreviousPage(page, setPage);
+  const loadMoreImages = () => {
+    if (page < totalPages) {
+      setPage((prevPage) => prevPage + 1);
+    }
   };
 
   const onImageClick = (imageUrl) => {
@@ -69,6 +66,11 @@ const SearchBar = () => {
 
   const onCloseModal = () => {
     handleCloseModal(setOpenModal, setSelectedImage);
+  };
+
+  const handleSortByColor = () => {
+    const sortedImages = sortImagesByColor(images);
+    setImages(sortedImages);
   };
 
   const handleTagClick = async (tag) => {
@@ -84,7 +86,6 @@ const SearchBar = () => {
 
   return (
     <Container
-      maxWidth="lg"
       component="form"
       onSubmit={handleSearch}
       sx={{
@@ -92,28 +93,26 @@ const SearchBar = () => {
         flexDirection: "column",
         alignItems: "center",
         height: "100vh",
-        width: "100vw",
       }}
     >
       <Box textAlign="center" my="auto">
-        <Typography variant="h1" component="h1" sx={{ fontSize: "3em" }}>
-          Explore Images
+        <Typography
+          variant="h1"
+          component="h1"
+          sx={{ fontSize: "3em", marginTop: "1em" }}
+        >
+          Discover Visuals
         </Typography>
         <Box>
           {errorMessage && <Typography variant="p">{errorMessage}</Typography>}
         </Box>
         <SearchField searchField={searchField} handleSearch={handleSearch} />
       </Box>
-      <Box sx={{ display: "flex", justifyContent: "center" }}>
-        {images.length > 0 && (
-          <Box sx={{ display: "flex", justifyContent: "center" }}>
-            <Checkbox
-              onChange={(checked) => setOrderByPopularity(checked)}
-              checked={orderByPopularity}
-            />
-          </Box>
-        )}
-      </Box>
+      {images.length > 0 && (
+        <Box>
+          <Button onClick={handleSortByColor}>Sort by Color</Button>
+        </Box>
+      )}
       <Box mt={4}>
         <Tags
           tags={randomTags}
@@ -122,20 +121,27 @@ const SearchBar = () => {
           searchField={searchField}
         />
       </Box>
-      <Box sx={{ width: "90%" }}>
-        <ImageGrid images={images} handleImageClick={onImageClick} />
-      </Box>
+      {images.length > 0 && (
+        <InfiniteScroll
+          dataLength={images.length}
+          next={loadMoreImages}
+          hasMore={page < totalPages}
+          loader={<h4>Loading...</h4>}
+        >
+          <Box sx={{ width: "90%" }}>
+            <ImageGrid
+              images={images}
+              handleImageClick={onImageClick}
+              keyExtractor={(image) => image.id}
+            />
+          </Box>
+        </InfiniteScroll>
+      )}
       <ImageModal
         openModal={openModal}
         handleCloseModal={onCloseModal}
         selectedImage={selectedImage}
-        handleImageLoad={handleImageLoad}
-        loading={loadingImage}
       />
-      <Box>
-        {page > 1 && <Button onClick={onPreviousPage}>Previous</Button>}
-        {page < totalPages && <Button onClick={onNextPage}>Next</Button>}
-      </Box>
     </Container>
   );
 };
