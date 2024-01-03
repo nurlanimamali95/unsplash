@@ -6,10 +6,10 @@ const SearchField = ({ searchField, handleSearch }) => {
   return (
     <TextField
       id="outlined-basic"
-      label="Type something..."
       variant="outlined"
       inputRef={searchField}
       sx={{ width: "400px", my: 2 }}
+      placeholder="Type something..."
       InputProps={{
         endAdornment: (
           <InputAdornment position="end">
