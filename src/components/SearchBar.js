@@ -6,7 +6,7 @@ import Tags from "./Tags";
 import { getRandomTags } from "../utils/getRandomTags";
 import ImageModal from "./ImageModal";
 import SearchField from "./SearchField";
-import { handleImageClick, handleCloseModal } from "../handlers/imageHandlers";
+import { handleImageClick, handleCloseModal } from "../utils/imageHandlers";
 import InfiniteScroll from "react-infinite-scroll-component";
 import sortImagesByColor from "../utils/colorSort";
 

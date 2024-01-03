@@ -21,10 +21,10 @@ const ImageListComponent = ({ images, handleImageClick }) => {
               whileHover={{ scale: 1.1 }}
             >
               <ImageListItem
-                component={Paper} // Use Paper for a card-like appearance
+                component={Paper}
                 sx={{
                   cursor: "pointer",
-                  aspectRatio: "1", // Set a square aspect ratio for the images
+                  aspectRatio: "1",
                 }}
                 key={image.id}
                 onClick={() => handleImageClick(image.urls.full)}
