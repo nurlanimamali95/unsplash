@@ -6,10 +6,10 @@ const API_URL = "https://api.unsplash.com/search/photos";
 const apiKey = process.env.REACT_APP_UNSPLASH_API_KEY;
 const IMAGES_PER_PAGE = 9;
 
-const fetchImages = async (query, page, orderBy = "latest") => {
+const fetchImages = async (query, page) => {
   try {
     const { data } = await axios.get(
-      `${API_URL}?query=${query}&page=${page}&per_page=${IMAGES_PER_PAGE}&client_id=${apiKey}&order_by=${orderBy}`
+      `${API_URL}?query=${query}&page=${page}&per_page=${IMAGES_PER_PAGE}&client_id=${apiKey}`
     );
     const imagesWithColors = data.results.map((image) => ({
       ...image,
@@ -27,7 +27,6 @@ const fetchImages = async (query, page, orderBy = "latest") => {
 const handleFetchImages = async (
   query,
   page,
-  orderByPopularity,
   searchFieldRef,
   setImages,
   setTotalPages,
@@ -39,7 +38,6 @@ const handleFetchImages = async (
       const { images, totalPages } = await fetchImages(
         query,
         page,
-        orderByPopularity ? "popular" : "latest"
       );
       setImages(images);
       setTotalPages(totalPages);
